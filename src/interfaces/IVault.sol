@@ -1,43 +1,53 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.26;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IVault
  * @notice Interface for vault management 
  */
 interface IVault {
-    /// @notice Emitted when user deposits collateral to their account
-    event Deposited(address indexed user, uint256 amount);
+    //===========================================
+    // Events
+    //===========================================
 
+    /// @notice Emitted when user deposits collateral
+    event Deposited(address indexed user, uint256 amount);
     /// @notice Emitted when user withdraws available collateral
     event Withdrawn(address indexed user, uint256 amount);
-
-    /// @notice Emitted when collateral is locked for a specific condition
+    /// @notice Emitted when collateral is locked for a market
     event Locked(bytes32 indexed marketId, address indexed user, uint256 amount);
-
-    /// @notice Emitted when collateral is unlocked from a resolved condition
+    /// @notice Emitted when collateral is unlocked from a market
     event Unlocked(bytes32 indexed marketId, address indexed user, uint256 amount);
-    
-    /// @notice Emitted when collateral is transferred between users during token swaps
+    /// @notice Emitted when available collateral is transferred between users
     event Transferred(bytes32 indexed marketId, address indexed from, address indexed to, uint256 amount);
 
-    /// @notice Emitted when pause state is changed
-    event VaultPauseState(bool paused);
+    /// @notice Emitted when the vault is first created
+    event VaultCreated(address indexed owner, address indexed controller);
+    /// @notice Emitted when the authorized controller address is changed
+    event VaultControllerChanged(address indexed oldController, address indexed newController);
+    /// @notice Emitted when the pause state is changed
+    event VaultPauseState(bool isPaused);
+    /// @notice Emitted when stuck ERC20 tokens are rescued by the owner
+    event TokenRescue(IERC20 indexed token, uint256 amount);
 
-    /// @notice Emitted when controller is changed
-    event VaultControllerChanged(address newController, address oldController);
+    //===========================================
+    // Errors
+    //===========================================
 
-    /// @notice Emitted when contract is created
-    event VaultIsCreated(address owner, address controller);
-
-    /// @notice Error for zero address
-    error NonZeroAddress();
-    
-    /// @notice Error for zero amount
-    error NonZeroAmount();
-
-    /// @notice Error for unauthorize caller
+    /// @notice Reverts if contract operations are paused
+    error VaultPaused();
+    /// @notice Reverts if caller is not the authorized controller
     error UnauthorizedCaller();
+    /// @notice Reverts if an address parameter is address(0)
+    error NonZeroAddress();
+    /// @notice Reverts if a value or amount parameter is 0
+    error NonZeroAmount();
+    /// @notice Reverts if user has insufficient available balance
+    error InsufficientAmount();
+    /// @notice Reverts if a market has insufficient locked collateral
+    error InsufficientLockedAmount();
 
     /**
      * @notice Deposits ERC20 collateral tokens into user's available balance
