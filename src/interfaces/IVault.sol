@@ -5,117 +5,122 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IVault
- * @notice Interface for vault management 
+ * @notice Defines the external interface for the Vault contract, which manages user collateral.
  */
 interface IVault {
     //===========================================
-    // Events
+    //                 Events
     //===========================================
 
-    /// @notice Emitted when user deposits collateral
+    /// @notice Emitted when a user deposits collateral.
     event Deposited(address indexed user, uint256 amount);
-    /// @notice Emitted when user withdraws available collateral
+    /// @notice Emitted when a user withdraws available collateral.
     event Withdrawn(address indexed user, uint256 amount);
-    /// @notice Emitted when collateral is locked for a market
+    /// @notice Emitted when collateral is locked for a market.
     event Locked(bytes32 indexed marketId, address indexed user, uint256 amount);
-    /// @notice Emitted when collateral is unlocked from a market
+    /// @notice Emitted when collateral is released from a market.
     event Unlocked(bytes32 indexed marketId, address indexed user, uint256 amount);
-    /// @notice Emitted when available collateral is transferred between users
+    /// @notice Emitted when available collateral is transferred between users.
     event Transferred(bytes32 indexed marketId, address indexed from, address indexed to, uint256 amount);
-
-    /// @notice Emitted when the vault is first created
+    /// @notice Emitted when the vault is first created.
     event VaultCreated(address indexed owner, address indexed controller);
-    /// @notice Emitted when the authorized controller address is changed
+    /// @notice Emitted when the authorized Controller address is changed.
     event VaultControllerChanged(address indexed oldController, address indexed newController);
-    /// @notice Emitted when the pause state is changed
+    /// @notice Emitted when the pause state is changed.
     event VaultPauseState(bool isPaused);
-    /// @notice Emitted when stuck ERC20 tokens are rescued by the owner
+    /// @notice Emitted when stuck ERC20 tokens are rescued by the owner.
     event TokenRescue(IERC20 indexed token, uint256 amount);
+    /// @notice Emitted when the collateral token is changed.
+    event VaultTokenChanged(IERC20 indexed newToken);
 
     //===========================================
-    // Errors
+    //                 Errors
     //===========================================
 
-    /// @notice Reverts if contract operations are paused
+    /// @notice Reverts if contract operations are paused.
     error VaultPaused();
-    /// @notice Reverts if caller is not the authorized controller
+    /// @notice Reverts if the caller is not the authorized Controller.
     error UnauthorizedCaller();
-    /// @notice Reverts if an address parameter is address(0)
+    /// @notice Reverts if an address parameter is address(0).
     error NonZeroAddress();
-    /// @notice Reverts if a value or amount parameter is 0
+    /// @notice Reverts if a value or amount parameter is 0.
     error NonZeroAmount();
-    /// @notice Reverts if user has insufficient available balance
+    /// @notice Reverts if a user has an insufficient available balance.
     error InsufficientAmount();
-    /// @notice Reverts if a market has insufficient locked collateral
+    /// @notice Reverts if a market has insufficient locked collateral.
     error InsufficientLockedAmount();
 
-    /**
-     * @notice Deposits ERC20 collateral tokens into user's available balance
-     * @param amount Number of collateral tokens to deposit
-     * @dev Requires prior ERC20 approval for vault contract
-     */
-    function deposit(uint256 amount) external;
+    //===========================================
+    //                Functions
+    //===========================================
 
     /**
-     * @notice Withdraws available collateral tokens to user's wallet
-     * @param amount Number of tokens to withdraw
-     * @dev Only withdraws from unlocked balance, reverts on insufficient funds
+     * @notice Deposits collateral tokens into the vault.
+     * @dev Caller must first approve the vault contract to spend their tokens.
+     * @param _amount The amount of collateral tokens to deposit.
      */
-    function withdraw(uint256 amount) external;
+    function deposit(uint256 _amount) external;
 
     /**
-     * @notice Locks user's available collateral for position token minting
-     * @param marketId Market condition identifier
-     * @param user Address whose collateral to lock
-     * @param amount Collateral amount to lock
-     * @dev Called by MarketController contract during position creation
+     * @notice Withdraws available collateral tokens from the vault.
+     * @dev Reverts if the withdrawal amount exceeds the user's available balance.
+     * @param _amount The amount of collateral tokens to withdraw.
      */
-    function lock(bytes32 marketId, address user, uint256 amount) external;
+    function withdraw(uint256 _amount) external;
 
     /**
-     * @notice Unlocks collateral from resolved condition to user's available balance
-     * @param marketId Resolved condition identifier
-     * @param user User redeeming position tokens
-     * @param amount Payout amount determined by market resolution
-     * @dev Called by MarketController contract after successful claim verification
+     * @notice Locks a user's available collateral for a market position.
+     * @dev Must be called by the authorized Controller contract.
+     * @param _marketId The identifier for the market.
+     * @param _user The user whose collateral is being locked.
+     * @param _amount The amount of collateral to lock.
      */
-    function unlock(bytes32 marketId, address user, uint256 amount) external;
+    function lock(bytes32 _marketId, address _user, uint256 _amount) external;
 
     /**
-     * @notice Transfers collateral between users' vault balances (for token swaps)
-     * @param marketId Market condition identifier for tracking
-     * @param from User sending collateral
-     * @param to User receiving collateral
-     * @param amount Amount to transfer
-     * @dev Called by MarketController during token swap settlements
+     * @notice Releases collateral from a resolved market to a user's available balance.
+     * @dev Must be called by the authorized Controller contract.
+     * @param _marketId The identifier for the market.
+     * @param _user The user receiving the released collateral.
+     * @param _amount The amount of collateral to release.
      */
-    function transfer(bytes32 marketId, address from, address to, uint256 amount) external;
+    function release(bytes32 _marketId, address _user, uint256 _amount) external;
 
     /**
-     * @notice Returns user's available collateral balance
-     * @param user Address to query
-     * @return Available balance for withdrawal or position creation
+     * @notice Transfers available collateral between two users internally.
+     * @dev Must be called by the authorized Controller contract to settle trades efficiently.
+     * @param _marketId The identifier for the market (for event logging).
+     * @param _from The user sending the collateral.
+     * @param _to The user receiving the collateral.
+     * @param _amount The amount to transfer.
      */
-    function getBalance(address user) external view returns (uint256);
+    function transfer(bytes32 _marketId, address _from, address _to, uint256 _amount) external;
 
     /**
-     * @notice Returns total locked collateral for specific condition
-     * @param marketId Condition identifier
-     * @return Total locked amount across all participants
+     * @notice Gets the available (unlocked) collateral balance of a user.
+     * @param _user The address of the user to query.
+     * @return The user's available balance.
      */
-    function getTotalLocked(bytes32 marketId) external view returns (uint256);
+    function getBalance(address _user) external view returns (uint256);
 
     /**
-     * @notice Updates authorized MarketController contract address
-     * @param _contract New authorized contract address
-     * @dev Only callable by contract owner
+     * @notice Gets the total collateral locked for a specific market.
+     * @param _marketId The identifier of the market.
+     * @return The total locked collateral for the market.
      */
-    function setController(address _contract) external;
+    function getTotalLocked(bytes32 _marketId) external view returns (uint256);
 
     /**
-     * @notice Sets contract pause state for emergency situations
-     * @param _paused Pause state boolean
-     * @dev Only callable by contract owner, affects user-facing operations
+     * @notice Updates the address of the authorized Controller contract.
+     * @dev Can only be called by the contract owner.
+     * @param _newController The address of the new Controller.
+     */
+    function setController(address _newController) external;
+
+    /**
+     * @notice Toggles the emergency pause state of the contract.
+     * @dev Can only be called by the contract owner.
+     * @param _paused True to pause, false to unpause.
      */
     function setPaused(bool _paused) external;
 }
