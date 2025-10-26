@@ -9,13 +9,14 @@ contract ResolverTest is Test {
     Market market;
     Resolver resolver;
 
+    uint256 initialOutcome = 2;
     address owner = makeAddr("owner");
     address oracle = makeAddr("oracle");
     address controller = makeAddr("controller");
 
     /// @notice Sets up the Market and Resolver contracts before each test.
     function setUp() external {
-        market = new Market(owner, controller);
+        market = new Market(owner, controller, initialOutcome);
         resolver = new Resolver(owner, address(market), oracle, controller);
     }
 

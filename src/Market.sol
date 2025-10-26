@@ -57,12 +57,14 @@ contract Market is IMarket, Ownable {
      * @notice Initializes the Market contract.
      * @param _initialOwner The address of the contract owner (admin).
      * @param _initialController The address of the authorized Controller contract.
+     * @param _maxOutcome The maximum outcome count
      */
-    constructor(address _initialOwner, address _initialController) Ownable(_initialOwner) {
+    constructor(address _initialOwner, address _initialController, uint256 _maxOutcome) Ownable(_initialOwner) {
         if (_initialOwner == address(0)) revert NonZeroAddress();
         if (_initialController == address(0)) revert NonZeroAddress();
 
         controller = _initialController;
+        maxOutcome = _maxOutcome;
     }
 
     //===========================================
@@ -141,6 +143,7 @@ contract Market is IMarket, Ownable {
     function setMaxOutcome(uint256 _newMaxOutcome) external onlyOwner {
         // Sebuah pasar membutuhkan setidaknya dua hasil
         if (_newMaxOutcome < 2) revert InvalidOutcome();
+        
         maxOutcome = _newMaxOutcome;
     }
 
@@ -150,7 +153,7 @@ contract Market is IMarket, Ownable {
      */
     function setPaused(bool _paused) external onlyOwner {
         paused = _paused;
-        // Menggunakan nama event yang lebih konsisten
+
         emit MarketPauseState(_paused);
     }
 
