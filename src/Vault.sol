@@ -158,6 +158,7 @@ contract Vault is IVault, Ownable {
         uint256 _amount
     ) external onlyController whenNotPaused {
         if (balances[_from] < _amount) revert InsufficientAmount();
+        if (_from == address(0)) revert NonZeroAddress();
         if (_to == address(0)) revert NonZeroAddress();
 
         balances[_from] -= _amount;

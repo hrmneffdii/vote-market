@@ -16,6 +16,14 @@ contract MarketTest is Test {
         market = new Market(owner, controller, initialOutcome);
     }
 
+    function test_constructorFails() external {
+        vm.expectRevert();
+        new Market(address(0), controller, initialOutcome);
+
+        vm.expectRevert();
+        new Market(owner, address(0), initialOutcome);
+    }
+
     /// @notice Checks if the constructor state variables are set correctly.
     function test_initialize() external view {
         assertEq(market.owner(), owner);
@@ -28,6 +36,13 @@ contract MarketTest is Test {
     function test_setConfig() external {
         address newController = makeAddr("newController");
         uint256 newMaxOutcome = 3;
+
+        vm.startPrank(owner);
+        vm.expectRevert();
+        market.setController(address(0));
+        vm.expectRevert();
+        market.setMaxOutcome(1);
+        vm.stopPrank();
 
         vm.startPrank(owner);
         market.setController(newController);
@@ -46,6 +61,9 @@ contract MarketTest is Test {
         uint256 outcomeCount = 2;
         uint256 deadlineTime = 0;
 
+        vm.expectRevert();
+        market.isMarketMature(question);
+
         // 1. Reverts if marketId is bytes32(0)
         vm.prank(controller);
         vm.expectRevert();
@@ -59,6 +77,34 @@ contract MarketTest is Test {
         vm.prank(controller);
         vm.expectRevert();
         market.createMarket(question, outcomeCount, deadlineTime);
+
+        // 3, Reverts if deadline in past
+        uint256 past = block.timestamp;
+
+        skip(1 days);
+        vm.prank(controller);
+        vm.expectRevert();
+        market.createMarket(question, 2, past);
+
+        vm.expectRevert(); // non-controller author
+        market.createMarket(question, 2, 0);
+
+        vm.prank(owner);
+        market.setPaused(true);
+
+        vm.prank(controller);
+        vm.expectRevert(); // market paused
+        market.createMarket(question, 2, 0);
+
+        vm.prank(owner);
+        market.setPaused(false);
+
+        vm.startPrank(controller);
+        market.createMarket(question, 2, 0);
+
+        vm.expectRevert(); // market exist
+        market.createMarket(question, 2, 0);
+        vm.stopPrank();
     }
 
     /// @notice Tests the successful creation and lifecycle of a market.
@@ -77,6 +123,9 @@ contract MarketTest is Test {
         vm.prank(controller);
         vm.expectRevert();
         market.updateDeadlineTime(question, 1 days - 10);
+
+        vm.expectRevert(); // non-controller author
+        market.updateDeadlineTime(question, 7 days);
 
         // 3. Successfully update deadline to a future time
         vm.prank(controller);

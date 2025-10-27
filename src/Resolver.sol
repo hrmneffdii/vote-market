@@ -18,7 +18,7 @@ contract Resolver is IResolver, Ownable {
     //===========================================
 
     /// @notice The Market registry contract, used to check market maturity status.
-    IMarket public immutable market;
+    IMarket public market;
 
     /// @notice The authorized Controller contract address.
     address public controller;

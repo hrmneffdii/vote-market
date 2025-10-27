@@ -20,6 +20,18 @@ contract ResolverTest is Test {
         resolver = new Resolver(owner, address(market), oracle, controller);
     }
 
+    /// @notice Checks in constructor input validations
+    function test_constructorFails() external {
+        vm.expectRevert();
+        new Resolver(address(0), address(market), oracle, controller);
+        vm.expectRevert();
+        new Resolver(owner, address(0), oracle, controller);
+        vm.expectRevert();
+        new Resolver(owner, address(market), address(0), controller);
+        vm.expectRevert();
+        new Resolver(owner, address(market), oracle, address(0));
+    }
+
     /// @notice Checks if the constructor state variables are set correctly.
     function test_initialize() external view {
         assertEq(resolver.oracle(), oracle);
@@ -32,6 +44,20 @@ contract ResolverTest is Test {
     function test_setConfig() external {
         address newOracle = makeAddr("newOracle");
         address newController = makeAddr("newController");
+
+        vm.expectRevert();
+        resolver.setOracle(newOracle);
+        vm.expectRevert();
+        resolver.setController(newController);
+        vm.expectRevert();
+        resolver.setPaused(true);
+
+        vm.startPrank(owner);
+        vm.expectRevert();
+        resolver.setOracle(address(0));
+        vm.expectRevert();
+        resolver.setController(address(0));
+        vm.stopPrank();
 
         vm.startPrank(owner);
         resolver.setOracle(newOracle);
@@ -53,6 +79,9 @@ contract ResolverTest is Test {
 
         _createMarket(question, outcomeCount, deadline);
 
+        vm.expectRevert();
+        resolver.getAnswer(question);
+
         vm.prank(oracle);
         resolver.resolve(question, answer);
 
@@ -69,6 +98,9 @@ contract ResolverTest is Test {
 
         _createMarket(question, outcomeCount, deadline);
 
+        vm.expectRevert();
+        resolver.getAnswer(question);
+
         vm.prank(controller);
         resolver.resolve(question, answer);
 
@@ -76,13 +108,57 @@ contract ResolverTest is Test {
         assertEq(resolver.getAnswer(question), answer);
     }
 
+    /// @notice Ensures the authorized controller can also resolve a market.
+    function test_resolveReverts() external {
+        bytes32 question = keccak256("question"); // Fixed typo here
+        uint256 answer = 0;
+        uint256 outcomeCount = 2;
+        uint256 deadline = 1 days;
+
+        _createMarket(question, outcomeCount, deadline);
+
+        vm.expectRevert();
+        resolver.getAnswer(question);
+
+        vm.prank(controller);
+        vm.expectRevert(); // not maturing yet
+        resolver.resolve(question, answer);
+
+        skip(2 days);
+
+        vm.prank(controller);
+        vm.expectRevert(); // answer higher than number of outcome
+        resolver.resolve(question, 10);
+
+        vm.prank(owner);
+        resolver.setPaused(true);
+
+        vm.prank(controller);
+        vm.expectRevert(); // paused
+        resolver.resolve(question, answer);
+        
+        vm.prank(owner);
+        resolver.setPaused(false);
+
+        vm.startPrank(controller);
+        resolver.resolve(question, answer);
+
+        vm.expectRevert(); // already answered
+        resolver.resolve(question, answer);
+
+        vm.stopPrank();
+
+        assertEq(resolver.isResolved(question), true);
+        assertEq(resolver.getAnswer(question), answer);
+    }
+
     /// @notice Helper function to create a new market via the controller.
     function _createMarket(
-        bytes32 _question,
+        bytes32 _marketId,
         uint256 _outcomeCount,
         uint256 _deadlineTime
     ) internal {
         vm.prank(controller);
-        market.createMarket(_question, _outcomeCount, _deadlineTime);
+        market.createMarket(_marketId, _outcomeCount, _deadlineTime);
     }
 }

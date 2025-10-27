@@ -31,6 +31,14 @@ contract VaultTest is Test {
         vm.stopPrank();
     }
 
+    function test_constructorFails() external {
+        vm.expectRevert();
+        new Vault(address(0), controller);
+
+        vm.expectRevert();
+        new Vault(owner, address(0));
+    }
+
     /// @notice Checks if the constructor state variables are set correctly.
     function test_initializeState() external view {
         assertEq(vault.owner(), owner, "Incorrect owner");
@@ -42,6 +50,20 @@ contract VaultTest is Test {
     function test_setConfig() external {
         address newController = makeAddr("newController");
         ERC20Mock newToken = new ERC20Mock();
+
+        vm.expectRevert();
+        vault.setController(newController);
+
+        vm.expectRevert();
+        vault.setToken(newToken);
+
+        vm.startPrank(owner);
+        vm.expectRevert();
+        vault.setController(address(0));
+
+        vm.expectRevert();
+        vault.setToken(ERC20Mock(address(0)));
+        vm.stopPrank();
 
         vm.startPrank(owner);
         vault.setController(newController);
@@ -70,6 +92,16 @@ contract VaultTest is Test {
         vm.prank(alice);
         vm.expectRevert(); // Expecting a revert
         vault.deposit(0);
+
+        vm.prank(owner);
+        vault.setPaused(true);
+
+        vm.startPrank(alice);
+        USDC.approve(address(vault), INITIAL_BALANCE);
+
+        vm.expectRevert(); // paused
+        vault.deposit(INITIAL_BALANCE);
+        vm.stopPrank();
     }
 
     /// @notice Ensures a user (Alice) can withdraw their balance.
@@ -98,6 +130,13 @@ contract VaultTest is Test {
         vm.expectRevert();
         vault.withdraw(INITIAL_BALANCE + 1);
         vm.stopPrank();
+
+        vm.prank(owner);
+        vault.setPaused(true);
+
+        vm.prank(alice);
+        vm.expectRevert(); // paused
+        vault.withdraw(INITIAL_BALANCE);
     }
 
     /// @notice Ensures the controller can lock a user's balance (making it non-withdrawable).
@@ -105,7 +144,20 @@ contract VaultTest is Test {
         bytes32 marketId = keccak256("question1");
         _deposit(alice, INITIAL_BALANCE);
 
+        vm.expectRevert(); // unauthorize caller
+        vault.lock(marketId, alice, INITIAL_BALANCE);
+
         // Controller locks Alice's funds
+        vm.prank(owner);
+        vault.setPaused(true);
+
+        vm.prank(controller);
+        vm.expectRevert(); // paused
+        vault.lock(marketId, alice, INITIAL_BALANCE);
+
+        vm.prank(owner);
+        vault.setPaused(false);
+
         vm.prank(controller);
         vault.lock(marketId, alice, INITIAL_BALANCE);
 
@@ -128,6 +180,25 @@ contract VaultTest is Test {
         vm.prank(controller);
         vault.lock(marketId, alice, INITIAL_BALANCE);
 
+        vm.expectRevert(); // unauthorize caller
+        vault.release(marketId, alice, INITIAL_BALANCE);
+
+        // Controller locks Alice's funds
+        vm.prank(owner);
+        vault.setPaused(true);
+
+        vm.prank(controller);
+        vm.expectRevert(); // paused
+        vault.release(marketId, alice, INITIAL_BALANCE);
+
+        vm.prank(owner);
+        vault.setPaused(false);
+
+        // 2. Release funds
+        vm.prank(controller);
+        vm.expectRevert(); // unauthorize caller
+        vault.release(marketId, alice, INITIAL_BALANCE + 1);
+
         // 2. Release funds
         vm.prank(controller);
         vault.release(marketId, alice, INITIAL_BALANCE);
@@ -147,8 +218,34 @@ contract VaultTest is Test {
         _deposit(alice, INITIAL_BALANCE);
 
         // Controller transfers Alice's funds to Bob (e.g., Bob won the market)
-        vm.prank(controller);
+        vm.expectRevert(); // unauthorized
         vault.transfer(marketId, alice, bob, INITIAL_BALANCE);
+
+        vm.prank(owner);
+        vault.setPaused(true);
+
+        vm.prank(controller);
+        vm.expectRevert(); // paused
+        vault.transfer(marketId, alice, bob, INITIAL_BALANCE);
+
+        vm.prank(owner);
+        vault.setPaused(false);
+
+        // 1.revert in case balance < amount
+        vm.startPrank(controller);
+        vm.expectRevert();
+        vault.transfer(marketId, alice, bob, INITIAL_BALANCE + 1);
+
+        // 2.revert in address from is zero
+        vm.expectRevert();
+        vault.transfer(marketId, address(0), bob, INITIAL_BALANCE);
+
+        // 3.revert in address to is zero
+        vm.expectRevert();
+        vault.transfer(marketId, alice, address(0), INITIAL_BALANCE);
+
+        vault.transfer(marketId, alice, bob, INITIAL_BALANCE);
+        vm.stopPrank();
 
         assertEq(vault.getBalance(alice), 0); // Alice's balance is 0
         assertEq(vault.getBalance(bob), INITIAL_BALANCE); // Bob's balance increased
@@ -173,10 +270,21 @@ contract VaultTest is Test {
         assertEq(anotherToken.balanceOf(address(vault)), INITIAL_BALANCE);
         assertEq(anotherToken.balanceOf(owner), 0);
 
-        // Owner rescues the token
-        vm.prank(owner);
-        vault.rescue(anotherToken);
+        vm.expectRevert(); // unauthorized caller
+        vault.rescue(USDC);
 
+        // Owner rescues the token
+        vm.startPrank(owner);
+
+        // revert in case token is usdc
+        vm.expectRevert();
+        vault.rescue(USDC);
+
+        vm.expectRevert();
+        vault.rescue(ERC20Mock(address(0)));
+
+        vault.rescue(anotherToken);
+        vm.stopPrank();
         assertEq(anotherToken.balanceOf(address(vault)), 0);
         assertEq(anotherToken.balanceOf(owner), INITIAL_BALANCE);
     }
