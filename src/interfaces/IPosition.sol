@@ -11,7 +11,7 @@ interface IPosition {
     //                 Events
     //===========================================
 
-    event PositionControllerChanged(address oldController, address _newController); 
+    event PositionControllerChanged(address oldController, address _newController);
 
     //===========================================
     //                 Errors
@@ -26,6 +26,8 @@ interface IPosition {
     //           Mint/Burn Functions
     //===========================================
 
+    function mint(address _to, uint256 _id, uint256 _amount) external;
+
     /**
      * @notice Mints multiple types of outcome tokens to a user.
      * @dev Typically called by an authorized Controller (e.g., after a trade).
@@ -33,11 +35,7 @@ interface IPosition {
      * @param _ids The array of token IDs (generated from marketId + outcome).
      * @param _amounts The array of amounts to mint for each token ID.
      */
-    function mintBatch(
-        address _to,
-        uint256[] calldata _ids,
-        uint256[] calldata _amounts
-    ) external;
+    function mintBatch(address _to, uint256[] calldata _ids, uint256[] calldata _amounts) external;
 
     /**
      * @notice Burns a specific amount of a single outcome token from an account.
@@ -55,11 +53,7 @@ interface IPosition {
      * @param _ids The array of token IDs to burn.
      * @param _amounts The array of amounts to burn for each token ID.
      */
-    function burnBatch(
-        address _from,
-        uint256[] calldata _ids,
-        uint256[] calldata _amounts
-    ) external;
+    function burnBatch(address _from, uint256[] calldata _ids, uint256[] calldata _amounts) external;
 
     //===========================================
     //             View Functions
@@ -71,8 +65,5 @@ interface IPosition {
      * @param _outcome The index of the outcome (e.t., 0 for NO, 1 for YES).
      * @return The unique token ID as a uint256.
      */
-    function getTokenId(
-        bytes32 _marketId,
-        uint256 _outcome
-    ) external view returns (uint256);
+    function getTokenId(bytes32 _marketId, uint256 _outcome) external view returns (uint256);
 }

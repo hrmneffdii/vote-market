@@ -37,11 +37,25 @@ contract PositionTest is Test {
         vm.prank(owner);
         vm.expectRevert();
         position.setController(address(0));
-        
+
         vm.prank(owner);
         position.setController(newController);
 
         assertEq(position.controller(), newController);
+    }
+
+    function test_mintAndBurn() external {
+        bytes32 marketId = keccak256("question");
+        uint256 outcome = 2;
+        uint256 amount = 100e18;
+
+        uint256 id = position.getTokenId(marketId, outcome);
+
+        vm.expectRevert();
+        position.mint(user, id, amount);
+
+        vm.prank(controller);
+        position.mint(user, id, amount);
     }
 
     function test_mintBatchAndBurn() external {
@@ -134,7 +148,6 @@ contract PositionTest is Test {
         position.mintBatch(user, ids, amounts);
 
         assertEq(position.balanceOf(user, tokenId), amount);
-
 
         vm.expectRevert();
         position.burnBatch(user, ids, amounts);

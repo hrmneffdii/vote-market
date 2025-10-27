@@ -2,16 +2,15 @@
 pragma solidity ^0.8.26;
 
 interface IController {
-
     struct Order {
-        address user;           
-        bytes32 marketId;    
-        uint256 outcome;        
-        uint256 amount;         
-        uint256 price;          
-        uint256 nonce;         
-        uint256 expiration;     
-        bool isBuy;        
+        address user;
+        bytes32 marketId;
+        uint256 outcome;
+        uint256 amount;
+        uint256 price;
+        uint256 nonce;
+        uint256 expiration;
+        bool isBuy;
     }
 
     error UnauthorizedCaller();
@@ -22,20 +21,12 @@ interface IController {
 
     error NonZeroAddress();
 
+    error FeeTooHigh();
 
+    error MarketNotResolvedYet();
 
-    // admin function
+    error MismatchAnswer();
 
-    function createMarket() external ;
-    
-    function fillOrder() external ;
+    error SenderHasNotBalance();
 
-    function matchOrder() external ;
-
-    function resolveManually() external ;
-
-    // user function
-    function claim() external ;
-
-    function cancelOrder() external ;
 }

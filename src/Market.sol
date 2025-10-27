@@ -45,7 +45,7 @@ contract Market is IMarket, Ownable {
     }
 
     modifier onlyController() {
-        if (msg.sender!= controller) revert UnauthorizedCaller();
+        if (msg.sender != controller) revert UnauthorizedCaller();
         _;
     }
 
@@ -78,18 +78,20 @@ contract Market is IMarket, Ownable {
      * @param _outcomeCount The number of possible outcomes for the market (must be at least 2).
      * @param _deadlineTime The Unix timestamp for the market's resolution deadline.
      */
-    function createMarket(
-        bytes32 _marketId,
-        uint256 _outcomeCount,
-        uint256 _deadlineTime
-    ) external onlyController whenNotPaused {
+    function createMarket(bytes32 _marketId, uint256 _outcomeCount, uint256 _deadlineTime)
+        external
+        onlyController
+        whenNotPaused
+    {
         if (_marketId == bytes32(0)) revert NonZeroMarketId();
         if (marketExists[_marketId]) revert MarketAlreadyExists();
 
-        if (_outcomeCount < 2 || (maxOutcome > 0 && _outcomeCount > maxOutcome))
+        if (_outcomeCount < 2 || (maxOutcome > 0 && _outcomeCount > maxOutcome)) {
             revert InvalidOutcome();
-        if (_deadlineTime!= 0 && _deadlineTime < block.timestamp)
+        }
+        if (_deadlineTime != 0 && _deadlineTime < block.timestamp) {
             revert InvalidDate();
+        }
 
         marketExists[_marketId] = true;
         outcomeCounts[_marketId] = _outcomeCount;
@@ -104,13 +106,11 @@ contract Market is IMarket, Ownable {
      * @param _marketId The identifier of the market to update.
      * @param _newDeadlineTime The new Unix timestamp for the deadline.
      */
-    function updateDeadlineTime(
-        bytes32 _marketId,
-        uint256 _newDeadlineTime
-    ) external onlyController whenNotPaused {
+    function updateDeadlineTime(bytes32 _marketId, uint256 _newDeadlineTime) external onlyController whenNotPaused {
         if (!marketExists[_marketId]) revert MarketNotExists();
-        if (_newDeadlineTime!= 0 && _newDeadlineTime < block.timestamp)
+        if (_newDeadlineTime != 0 && _newDeadlineTime < block.timestamp) {
             revert InvalidDate();
+        }
 
         uint256 oldDeadline = deadlines[_marketId];
         deadlines[_marketId] = _newDeadlineTime;
@@ -134,7 +134,7 @@ contract Market is IMarket, Ownable {
 
         emit MarketControllerChanged(oldController, _newController);
     }
-    
+
     /**
      * @notice Updates the maximum allowed number of outcomes for new markets.
      * @dev Allows the owner to configure market creation constraints.
@@ -143,7 +143,7 @@ contract Market is IMarket, Ownable {
     function setMaxOutcome(uint256 _newMaxOutcome) external onlyOwner {
         // Sebuah pasar membutuhkan setidaknya dua hasil
         if (_newMaxOutcome < 2) revert InvalidOutcome();
-        
+
         maxOutcome = _newMaxOutcome;
     }
 
@@ -168,9 +168,7 @@ contract Market is IMarket, Ownable {
      * @param _marketId The identifier of the market to check.
      * @return A boolean indicating if the market is mature (true) or not (false).
      */
-    function isMarketMature(
-        bytes32 _marketId
-    ) external view override returns (bool) {
+    function isMarketMature(bytes32 _marketId) external view override returns (bool) {
         if (!marketExists[_marketId]) revert MarketNotExists();
 
         uint256 currentDeadline = deadlines[_marketId];
@@ -184,9 +182,7 @@ contract Market is IMarket, Ownable {
      * @param _marketId The identifier of the market.
      * @return The Unix timestamp of the market's deadline.
      */
-    function getDeadlineTime(
-        bytes32 _marketId
-    ) external view override returns (uint256) {
+    function getDeadlineTime(bytes32 _marketId) external view override returns (uint256) {
         return deadlines[_marketId];
     }
 
@@ -195,9 +191,7 @@ contract Market is IMarket, Ownable {
      * @param _marketId The identifier of the market.
      * @return The number of outcomes.
      */
-    function getOutcomeCount(
-        bytes32 _marketId
-    ) external view override returns (uint256) {
+    function getOutcomeCount(bytes32 _marketId) external view override returns (uint256) {
         return outcomeCounts[_marketId];
     }
 
@@ -206,9 +200,7 @@ contract Market is IMarket, Ownable {
      * @param _marketId The identifier of the market.
      * @return A boolean indicating if the market exists (true) or not (false).
      */
-    function getMarketExists(
-        bytes32 _marketId
-    ) external view override returns (bool) {
+    function getMarketExists(bytes32 _marketId) external view override returns (bool) {
         return marketExists[_marketId];
     }
 }

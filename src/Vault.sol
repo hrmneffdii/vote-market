@@ -44,7 +44,7 @@ contract Vault is IVault, Ownable {
     }
 
     modifier onlyController() {
-        if (msg.sender!= controller) revert UnauthorizedCaller();
+        if (msg.sender != controller) revert UnauthorizedCaller();
         _;
     }
 
@@ -60,7 +60,7 @@ contract Vault is IVault, Ownable {
     constructor(address _owner, address _controller) Ownable(_owner) {
         if (_owner == address(0)) revert NonZeroAddress();
         if (_controller == address(0)) revert NonZeroAddress();
-        
+
         controller = _controller;
 
         emit VaultCreated(_owner, _controller);
@@ -69,7 +69,7 @@ contract Vault is IVault, Ownable {
     //===========================================
     //             User Functions
     //===========================================
-    
+
     /**
      * @notice Deposits collateral tokens into the vault.
      * @dev Increases the user's available balance. Caller must approve the vault to spend tokens first.
@@ -98,11 +98,11 @@ contract Vault is IVault, Ownable {
 
         emit Withdrawn(msg.sender, _amount);
     }
-    
+
     //===========================================
     //          Controller Functions
     //===========================================
-    
+
     /**
      * @notice Locks a user's available collateral for a market position.
      * @dev Called only by the Controller. Moves balance from 'available' to a 'locked' state.
@@ -110,11 +110,7 @@ contract Vault is IVault, Ownable {
      * @param _user The user whose collateral is being locked.
      * @param _amount The amount of collateral to lock.
      */
-    function lock(
-        bytes32 _marketId,
-        address _user,
-        uint256 _amount
-    ) external onlyController whenNotPaused {
+    function lock(bytes32 _marketId, address _user, uint256 _amount) external onlyController whenNotPaused {
         if (balances[_user] < _amount) revert InsufficientAmount();
 
         balances[_user] -= _amount;
@@ -130,11 +126,7 @@ contract Vault is IVault, Ownable {
      * @param _user The user receiving the released collateral.
      * @param _amount The amount of collateral to release.
      */
-    function release(
-        bytes32 _marketId,
-        address _user,
-        uint256 _amount
-    ) external onlyController whenNotPaused {
+    function release(bytes32 _marketId, address _user, uint256 _amount) external onlyController whenNotPaused {
         if (totalLockedPerMarket[_marketId] < _amount) revert InsufficientLockedAmount();
 
         totalLockedPerMarket[_marketId] -= _amount;
@@ -151,12 +143,11 @@ contract Vault is IVault, Ownable {
      * @param _to The user receiving the collateral.
      * @param _amount The amount to transfer.
      */
-    function transfer(
-        bytes32 _marketId,
-        address _from,
-        address _to,
-        uint256 _amount
-    ) external onlyController whenNotPaused {
+    function transfer(bytes32 _marketId, address _from, address _to, uint256 _amount)
+        external
+        onlyController
+        whenNotPaused
+    {
         if (balances[_from] < _amount) revert InsufficientAmount();
         if (_from == address(0)) revert NonZeroAddress();
         if (_to == address(0)) revert NonZeroAddress();
@@ -166,11 +157,11 @@ contract Vault is IVault, Ownable {
 
         emit Transferred(_marketId, _from, _to, _amount);
     }
-    
+
     //===========================================
     //              Owner Functions
     //===========================================
-    
+
     /**
      * @notice Updates the address of the authorized Controller contract.
      * @param _newController The address of the new Controller.
@@ -191,7 +182,7 @@ contract Vault is IVault, Ownable {
      */
     function setToken(IERC20 _token) external onlyOwner {
         if (address(_token) == address(0)) revert NonZeroAddress();
-            
+
         token = _token;
 
         emit VaultTokenChanged(token);
@@ -225,15 +216,13 @@ contract Vault is IVault, Ownable {
     //===========================================
     //               View Functions
     //===========================================
-    
+
     /**
      * @notice Gets the available (unlocked) collateral balance of a user.
      * @param _user The address of the user.
      * @return The user's available balance.
      */
-    function getBalance(
-        address _user
-    ) external view returns (uint256) {
+    function getBalance(address _user) external view returns (uint256) {
         return balances[_user];
     }
 
@@ -242,9 +231,7 @@ contract Vault is IVault, Ownable {
      * @param _marketId The identifier of the market.
      * @return The total locked collateral for that market.
      */
-    function getTotalLocked(
-        bytes32 _marketId
-    ) external view returns (uint256) {
+    function getTotalLocked(bytes32 _marketId) external view returns (uint256) {
         return totalLockedPerMarket[_marketId];
     }
 }

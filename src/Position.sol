@@ -37,10 +37,8 @@ contract Position is IPosition, ERC1155, Ownable {
      * @param _initialOwner The address of the contract owner (admin).
      * @param _initialController The address of the authorized Controller contract.
      */
-    constructor(
-        address _initialOwner,
-        address _initialController
-    ) Ownable(_initialOwner) ERC1155("") { // No base URI needed
+    constructor(address _initialOwner, address _initialController) Ownable(_initialOwner) ERC1155("") {
+        // No base URI needed
         if (_initialOwner == address(0)) revert NonZeroAddress();
         if (_initialController == address(0)) revert NonZeroAddress();
 
@@ -51,6 +49,10 @@ contract Position is IPosition, ERC1155, Ownable {
     //          Mint/Burn Functions
     //===========================================
 
+    function mint(address _to, uint256 _id, uint256 _amount) external onlyController {
+        _mint(_to, _id, _amount, "");
+    }
+
     /**
      * @notice Mints multiple types of outcome tokens to a user.
      * @dev Called only by the Controller. Wraps the internal ERC1155 _mintBatch.
@@ -58,11 +60,11 @@ contract Position is IPosition, ERC1155, Ownable {
      * @param _ids The array of token IDs to mint.
      * @param _amounts The array of amounts to mint for each token ID.
      */
-    function mintBatch(
-        address _to,
-        uint256[] memory _ids,
-        uint256[] memory _amounts
-    ) external override onlyController {
+    function mintBatch(address _to, uint256[] memory _ids, uint256[] memory _amounts)
+        external
+        override
+        onlyController
+    {
         _mintBatch(_to, _ids, _amounts, "");
     }
 
@@ -73,11 +75,7 @@ contract Position is IPosition, ERC1155, Ownable {
      * @param _id The token ID to burn.
      * @param _amount The amount to burn.
      */
-    function burn(
-        address _from,
-        uint256 _id,
-        uint256 _amount
-    ) external override onlyController {
+    function burn(address _from, uint256 _id, uint256 _amount) external override onlyController {
         _burn(_from, _id, _amount);
     }
 
@@ -88,11 +86,11 @@ contract Position is IPosition, ERC1155, Ownable {
      * @param _ids The array of token IDs to burn.
      * @param _amounts The array of amounts to burn for each token ID.
      */
-    function burnBatch(
-        address _from,
-        uint256[] memory _ids,
-        uint256[] memory _amounts
-    ) external override onlyController {
+    function burnBatch(address _from, uint256[] memory _ids, uint256[] memory _amounts)
+        external
+        override
+        onlyController
+    {
         _burnBatch(_from, _ids, _amounts);
     }
 
@@ -124,10 +122,7 @@ contract Position is IPosition, ERC1155, Ownable {
      * @param _outcome The index of the outcome.
      * @return The unique token ID as a uint256.
      */
-    function getTokenId(
-        bytes32 _marketId,
-        uint256 _outcome
-    ) external pure override returns (uint256) {
+    function getTokenId(bytes32 _marketId, uint256 _outcome) external pure override returns (uint256) {
         // Cast the keccak256 hash (bytes32) to uint256 for the token ID
         return uint256(keccak256(abi.encode(_marketId, _outcome)));
     }

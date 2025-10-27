@@ -136,7 +136,7 @@ contract ResolverTest is Test {
         vm.prank(controller);
         vm.expectRevert(); // paused
         resolver.resolve(question, answer);
-        
+
         vm.prank(owner);
         resolver.setPaused(false);
 
@@ -153,11 +153,7 @@ contract ResolverTest is Test {
     }
 
     /// @notice Helper function to create a new market via the controller.
-    function _createMarket(
-        bytes32 _marketId,
-        uint256 _outcomeCount,
-        uint256 _deadlineTime
-    ) internal {
+    function _createMarket(bytes32 _marketId, uint256 _outcomeCount, uint256 _deadlineTime) internal {
         vm.prank(controller);
         market.createMarket(_marketId, _outcomeCount, _deadlineTime);
     }

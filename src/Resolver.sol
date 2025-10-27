@@ -40,8 +40,9 @@ contract Resolver is IResolver, Ownable {
     //===========================================
 
     modifier onlyControllerOrOracle() {
-        if (msg.sender != controller && msg.sender != oracle)
+        if (msg.sender != controller && msg.sender != oracle) {
             revert UnauthorizedCaller();
+        }
         _;
     }
 
@@ -61,12 +62,9 @@ contract Resolver is IResolver, Ownable {
      * @param _initialOracle The address of the authorized Oracle.
      * @param _initialController The address of the authorized Controller.
      */
-    constructor(
-        address _initialOwner,
-        address _market,
-        address _initialOracle,
-        address _initialController
-    ) Ownable(_initialOwner) {
+    constructor(address _initialOwner, address _market, address _initialOracle, address _initialController)
+        Ownable(_initialOwner)
+    {
         // Non-zero address checks, matching Market.sol style
         if (_initialOwner == address(0)) revert NonZeroAddress();
         if (_market == address(0)) revert NonZeroAddress();
@@ -89,10 +87,7 @@ contract Resolver is IResolver, Ownable {
      * @param _marketId The unique identifier for the market.
      * @param _answer The index of the winning outcome.
      */
-    function resolve(
-        bytes32 _marketId,
-        uint256 _answer
-    ) external override onlyControllerOrOracle whenNotPaused {
+    function resolve(bytes32 _marketId, uint256 _answer) external override onlyControllerOrOracle whenNotPaused {
         // 1. Check if the market is mature (fetches data from Market.sol)
         if (!market.isMarketMature(_marketId)) revert MarketNotMaturingYet();
 
@@ -157,9 +152,7 @@ contract Resolver is IResolver, Ownable {
      * @param _marketId The identifier of the market.
      * @return A boolean indicating if the market is resolved (true) or not (false).
      */
-    function isResolved(
-        bytes32 _marketId
-    ) external view override returns (bool) {
+    function isResolved(bytes32 _marketId) external view override returns (bool) {
         return isMarketIdAnswered[_marketId];
     }
 
