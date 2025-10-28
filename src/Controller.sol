@@ -85,36 +85,44 @@ contract Controller is IController, EIP712, Ownable {
      * @notice Initializes the Controller contract and its dependencies.
      * @param _initialOwner The address of the contract owner (super admin).
      * @param _treasury The address for fee collection.
-     * @param _market The deployed Market contract address.
-     * @param _vault The deployed Vault contract address.
-     * @param _resolver The deployed Resolver contract address.
-     * @param _position The deployed Position (ERC1155) contract address.
      */
     constructor(
         address _initialOwner,
-        address _treasury,
-        Market _market,
-        Vault _vault,
-        Resolver _resolver,
-        Position _position
+        address _treasury
     ) Ownable(_initialOwner) EIP712("Controller", "1") {
         if (_initialOwner == address(0)) revert NonZeroAddress();
         if (_treasury == address(0)) revert NonZeroAddress();
-        if (address(_market) == address(0)) revert NonZeroAddress();
-        if (address(_vault) == address(0)) revert NonZeroAddress();
-        if (address(_resolver) == address(0)) revert NonZeroAddress();
-        if (address(_position) == address(0)) revert NonZeroAddress();
 
         treasury = _treasury;
-        market = _market;
-        vault = _vault;
-        resolver = _resolver;
-        position = _position;
     }
 
     //===========================================
     //              Owner Functions
     //===========================================
+
+    /**
+     * @notice Sets the config after initialization
+     * @param _market The market contract
+     * @param _vault The vault contract
+     * @param _resolver The resolver contract
+     * @param _position The position contract
+     */
+    function setConfig(
+        Market _market,
+        Vault _vault,
+        Resolver _resolver,
+        Position _position
+    ) external onlyOwner {
+        if (address(_market) == address(0)) revert NonZeroAddress();
+        if (address(_vault) == address(0)) revert NonZeroAddress();
+        if (address(_resolver) == address(0)) revert NonZeroAddress();
+        if (address(_position) == address(0)) revert NonZeroAddress();
+
+        market = _market;
+        vault = _vault;
+        resolver = _resolver;
+        position = _position;
+    }
 
     /**
      * @notice Toggles the emergency pause state of the contract.
@@ -246,14 +254,15 @@ contract Controller is IController, EIP712, Ownable {
         uint256 _fillAmount
     ) external onlyAdmin whenNotPaused {
         // --- 1. Checks ---
-        if (_buyOrder.marketId != _sellOrder.marketId) revert MarketIdMismatch();
+        if (_buyOrder.marketId != _sellOrder.marketId)
+            revert MarketIdMismatch();
         if (_buyOrder.outcome != _sellOrder.outcome) revert OutcomeMismatch();
         if (!_buyOrder.isBuy || _sellOrder.isBuy) revert InvalidOrderPair();
         if (_buyOrder.price < _sellOrder.price) revert PriceMismatch();
         if (_fillAmount == 0) revert ZeroFillAmount();
 
-        bytes32 buyHash = _verifyOrder(_buyOrder, _buySignature);
-        bytes32 sellHash = _verifyOrder(_sellOrder, _sellSignature);
+        bytes32 buyHash = verifyOrder(_buyOrder, _buySignature);
+        bytes32 sellHash = verifyOrder(_sellOrder, _sellSignature);
 
         if (filledAmounts[buyHash] + _fillAmount > _buyOrder.amount)
             revert AmountOrderReached();
@@ -271,19 +280,27 @@ contract Controller is IController, EIP712, Ownable {
         );
         uint256 balanceOfSeller = position.balanceOf(_sellOrder.user, tokenId);
 
+        uint256 priceForBuyer;
+        uint256 priceForSeller;
+
         if (balanceOfSeller >= _fillAmount) {
             _swapToken(_buyOrder, _sellOrder, tokenId, _fillAmount);
+
+            priceForBuyer = (_fillAmount * _sellOrder.price) / BPS;
+            priceForSeller = (_fillAmount * _sellOrder.price) / BPS;
+
+            vault.lock(_buyOrder.marketId, _buyOrder.user, priceForBuyer);
+            vault.release(_sellOrder.marketId, _sellOrder.user, priceForSeller);
         } else {
             // This case handles minting a full set for the seller
             _mintToken(_buyOrder, _sellOrder, tokenId, _fillAmount);
+
+            priceForBuyer = (_fillAmount * _sellOrder.price) / BPS;
+            priceForSeller = _fillAmount - priceForBuyer;
+
+            vault.lock(_buyOrder.marketId, _buyOrder.user, priceForBuyer);
+            vault.lock(_sellOrder.marketId, _sellOrder.user, priceForSeller);
         }
-
-        uint256 priceForBuyer = _fillAmount * _buyOrder.price;
-        uint256 priceForSeller = _fillAmount * _sellOrder.price;
-
-        // Lock collateral from both users in the Vault
-        vault.lock(_buyOrder.marketId, _buyOrder.user, priceForBuyer);
-        vault.lock(_sellOrder.marketId, _sellOrder.user, priceForSeller);
 
         if (feeTrade > 0 && treasury != address(0)) {
             _takesFee(_buyOrder, _sellOrder, priceForBuyer, priceForSeller);
@@ -322,7 +339,7 @@ contract Controller is IController, EIP712, Ownable {
     ) external {
         if (_order.user != msg.sender) revert UnauthorizedCaller();
 
-        bytes32 orderHash = _verifyOrder(_order, _signature);
+        bytes32 orderHash = verifyOrder(_order, _signature);
 
         // Set filled amount to max to effectively cancel it
         filledAmounts[orderHash] = _order.amount;
@@ -401,10 +418,10 @@ contract Controller is IController, EIP712, Ownable {
      * @param signature The EIP712 signature.
      * @return orderHash The hash of the verified order.
      */
-    function _verifyOrder(
+    function verifyOrder(
         IController.Order calldata order,
         bytes calldata signature
-    ) internal view returns (bytes32) {
+    ) public view returns (bytes32) {
         if (block.timestamp > order.expiration) revert OrderExpired();
 
         bytes32 orderHash = _hashTypedDataV4(

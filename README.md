@@ -21,7 +21,7 @@ The protocol is composed of several key smart contracts, each with a specific re
     This contract manages the market resolution process. When a market ends, the `Controller` triggers the `Resolver`, which then communicates with an external `Oracle` to obtain the true outcome of the real-world event.
 
 *   **`Oracle`**
-    This is a crucial external dependency that sits outside the core system. The Oracle serves as a bridge between the real world and the blockchain, providing tamper-proof outcome data to the `Resolver`. The security and reliability of the Oracle are paramount to the integrity of the entire protocol. [1, 2, 3]
+    This is a crucial external dependency that sits outside the core system. The Oracle serves as a bridge between the real world and the blockchain, providing tamper-proof outcome data to the `Resolver`. The security and reliability of the Oracle are paramount to the integrity of the entire protocol. 
 
 ### Actors and Roles
 
@@ -48,3 +48,52 @@ The protocol is composed of several key smart contracts, each with a specific re
     *   Once the outcome is received, the `Controller` marks the market as resolved.
     *   Winning users can now call the `claim` function on the `Controller`.
     *   The `Controller` then instructs the `Vault` to `release` the locked funds to the winners.
+
+## Installation
+
+1. **Clone the repository**
+
+   ```bash 
+   git clone https://github.com/hrmneffdii/vote-market.git
+   ```
+
+2. **Navigate into the project directory**
+
+   ```bash
+   cd vote-market
+   ```
+
+3. **Build the project**
+
+   ```bash
+   forge build
+   ```
+
+4. **Run the tests**
+
+   ```bash
+   forge test
+   ```
+
+---
+
+### Test Coverage
+
+```
+╭--------------------+------------------+------------------+----------------+-----------------╮
+| File               | % Lines          | % Statements     | % Branches     | % Funcs         |
++=============================================================================================+
+| src/Controller.sol | 88.06% (118/134) | 84.85% (140/165) | 50.00% (15/30) | 77.27% (17/22)  |
+|--------------------+------------------+------------------+----------------+-----------------|
+| src/Market.sol     | 97.92% (47/48)   | 94.23% (49/52)   | 76.92% (10/13) | 100.00% (12/12) |
+|--------------------+------------------+------------------+----------------+-----------------|
+| src/Position.sol   | 100.00% (21/21)  | 94.12% (16/17)   | 75.00% (3/4)   | 100.00% (8/8)   |
+|--------------------+------------------+------------------+----------------+-----------------|
+| src/Resolver.sol   | 97.44% (38/39)   | 95.24% (40/42)   | 83.33% (10/12) | 100.00% (9/9)   |
+|--------------------+------------------+------------------+----------------+-----------------|
+| src/Vault.sol      | 100.00% (59/59)  | 95.08% (58/61)   | 81.25% (13/16) | 100.00% (14/14) |
+|--------------------+------------------+------------------+----------------+-----------------|
+| Total              | 94.02% (283/301) | 89.91% (303/337) | 68.00% (51/75) | 92.31% (60/65)  |
+╰--------------------+------------------+------------------+----------------+-----------------╯
+```
+

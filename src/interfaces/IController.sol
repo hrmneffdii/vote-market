@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-// Forward-declare dependencies (no need to import the full contract)
-interface Market;
-interface Vault;
-interface Resolver;
-interface Position;
+import {Market} from "../Market.sol";
+import {Vault} from "../Vault.sol";
+import {Resolver} from "../Resolver.sol";
+import {Position} from "../Position.sol";
 
 /**
  * @title IController
